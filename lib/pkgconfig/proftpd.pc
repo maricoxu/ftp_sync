@@ -1,0 +1,11 @@
+prefix=/home/users/humingqing/proftpd
+exec_prefix=${prefix}
+libdir=${prefix}/lib/proftpd
+includedir=${prefix}/include/proftpd
+
+Name: ProFTPD
+Description: Professional FTP Daemon
+Version: 1.3.5
+Requires: 
+Libs: -L${libdir}
+Cflags: -I${includedir}
