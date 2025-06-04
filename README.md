@@ -62,14 +62,33 @@ proftpd/
     *(请将 `[你的项目目录路径]` 替换为实际的部署路径)*
 
 3.  **运行初始化脚本**:
-    *   此脚本将执行以下操作:
-        *   创建 `ftpuser` 用户 (如果不存在)，其主目录为 `/home/Code`。
-        *   设置 `ftpuser` 的密码为 `ftp123`。
-        *   为 `/home/Code` 目录以及 ProFTPD 安装目录本身设置合适的所有权和权限。
-        *   生成一个全新的 `etc/proftpd.conf` 配置文件，以适应此设置。
+    
+    🎯 **新特性**: 现在支持自定义 FTP 工作目录！
+    
+    **交互式配置**（推荐）：
     ```bash
     bash ./init.sh
+    # 脚本会提示你输入或选择 FTP 工作目录
+    # 默认为 /home/Code，也可以指定其他路径
     ```
+    
+    **命令行参数模式**：
+    ```bash
+    # 使用默认路径
+    bash ./init.sh /home/Code
+    
+    # 或指定自定义路径
+    bash ./init.sh /var/www/myproject
+    ```
+    
+    *   此脚本将执行以下操作:
+        *   提示选择或输入 FTP 工作目录路径
+        *   创建 `ftpuser` 用户 (如果不存在)，其主目录为指定路径
+        *   设置 `ftpuser` 的密码为 `ftp123`
+        *   为指定目录以及 ProFTPD 安装目录设置合适的所有权和权限
+        *   生成一个全新的 `etc/proftpd.conf` 配置文件，适应所选路径
+        *   显示完整的 VS Code SFTP 配置示例
+    
     *   请仔细检查 `init.sh` 的输出，确保没有错误。
 
 4.  **启动 ProFTPD 服务器**:

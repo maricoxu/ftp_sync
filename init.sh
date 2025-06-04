@@ -12,8 +12,64 @@ NC='\033[0m' # No Color
 CURPATH=$(cd $(dirname $0); pwd)
 FTP_USER="ftpuser"
 FTP_PASS="ftp123"
-FTP_HOME="/home/Code" # This is where files will be synced, and ftpuser's home
+DEFAULT_FTP_HOME="/home/Code"  # 默认路径
 
+# 函数：验证路径格式
+validate_path() {
+    local path="$1"
+    # 检查是否为绝对路径
+    if [[ ! "$path" =~ ^/ ]]; then
+        echo -e "${RED}❌ 错误：路径必须是绝对路径（以 / 开头）${NC}"
+        return 1
+    fi
+    # 检查是否为根目录
+    if [ "$path" = "/" ]; then
+        echo -e "${RED}❌ 错误：不能使用根目录作为FTP目录${NC}"
+        return 1
+    fi
+    # 检查路径中是否包含特殊字符
+    if [[ "$path" =~ [[:space:]] ]]; then
+        echo -e "${YELLOW}⚠️ 警告：路径包含空格，可能在某些环境下出现问题${NC}"
+    fi
+    return 0
+}
+
+# 获取FTP主目录配置
+echo -e "${BLUE}🎯 === ProFTPD 服务器初始化配置 === ${NC}"
+echo ""
+
+if [ $# -eq 1 ]; then
+    # 命令行参数模式
+    FTP_HOME="$1"
+    echo -e "${CYAN}📝 使用命令行参数指定的路径: ${YELLOW}$FTP_HOME${NC}"
+else
+    # 交互模式
+    echo -e "${CYAN}📂 请设置 FTP 服务器的工作目录（这将是VS Code同步的目标路径）${NC}"
+    echo -e "${CYAN}   默认路径: ${YELLOW}$DEFAULT_FTP_HOME${NC}"
+    echo ""
+    echo -e "${CYAN}选项：${NC}"
+    echo -e "${CYAN}  1. 直接按 Enter 使用默认路径${NC}"
+    echo -e "${CYAN}  2. 输入自定义的绝对路径${NC}"
+    echo ""
+    echo -n -e "${YELLOW}请输入FTP工作目录路径 [默认: $DEFAULT_FTP_HOME]: ${NC}"
+    read user_input
+    
+    if [ -z "$user_input" ]; then
+        FTP_HOME="$DEFAULT_FTP_HOME"
+        echo -e "${GREEN}✓ 使用默认路径: $FTP_HOME${NC}"
+    else
+        FTP_HOME="$user_input"
+        echo -e "${CYAN}📝 用户指定路径: $FTP_HOME${NC}"
+    fi
+fi
+
+# 验证路径
+if ! validate_path "$FTP_HOME"; then
+    echo -e "${RED}❌ 初始化失败：路径格式不正确${NC}"
+    exit 1
+fi
+
+echo ""
 echo -e "${BLUE}=== 开始配置 FTP 用户 '$FTP_USER' 和目录 '$FTP_HOME' ===${NC}"
 
 # Create FTP_HOME if it doesn't exist
@@ -163,15 +219,37 @@ echo -e "  ${CYAN}RootLogin: (已注释/禁用)${NC}"
 echo -e "  ${CYAN}匿名登录: (已注释/禁用)${NC}"
 echo -e "  ${CYAN}AuthUserFile/AuthGroupFile: (已注释/禁用)${NC}"
 
-echo -e "\n${GREEN}🎉 === 用户 $FTP_USER 的初始化设置完成 ===${NC}"
-echo -e "${PURPLE}📋 下一步操作:${NC}"
-echo -e "${CYAN}1.${NC} 确保项目目录(包含修改后的 init.sh 和脚本文件)"
-echo -e "   已正确放置在 Docker 容器中(例如 /home/Code/ftp_sync)"
-echo -e "${CYAN}2.${NC} 在容器中，进入项目目录"
-echo -e "${CYAN}3.${NC} 运行: ${YELLOW}bash ./init.sh${NC} (创建用户、设置密码、生成配置文件)"
-echo -e "${CYAN}4.${NC} 然后运行: ${YELLOW}bash ./start.sh${NC} 启动 ProFTPD"
-echo -e "${CYAN}5.${NC} 更新你的 .vscode/sftp.json 配置:"
-echo -e "   - username: ${YELLOW}$FTP_USER${NC}"
-echo -e "   - password: ${YELLOW}$FTP_PASS${NC}"
-echo -e "   - remotePath: ${YELLOW}$FTP_HOME${NC}"
-echo -e "${RED}⚠️  重要提示:${NC} 如果 ProFTPD 启动失败，请检查 ${YELLOW}$CURPATH/var/proftpd.system.log${NC} 的错误信息"
+echo -e "\n${GREEN}🎉 =========================${NC}"
+echo -e "${GREEN}🎉 初始化设置完成！${NC}"
+echo -e "${GREEN}🎉 =========================${NC}"
+echo ""
+echo -e "${PURPLE}📋 配置概要：${NC}"
+echo -e "${CYAN}   • FTP用户: ${YELLOW}$FTP_USER${NC}"
+echo -e "${CYAN}   • 用户密码: ${YELLOW}$FTP_PASS${NC}"
+echo -e "${CYAN}   • 工作目录: ${YELLOW}$FTP_HOME${NC}"
+echo -e "${CYAN}   • 服务端口: ${YELLOW}8021${NC}"
+echo ""
+echo -e "${PURPLE}🚀 下一步操作：${NC}"
+echo -e "${CYAN}1.${NC} 运行 ${YELLOW}bash ./start.sh${NC} 启动 ProFTPD 服务"
+echo -e "${CYAN}2.${NC} 在 VS Code 中创建 ${YELLOW}.vscode/sftp.json${NC} 配置："
+echo ""
+echo -e "${PURPLE}📝 VS Code SFTP 配置示例:${NC}"
+echo -e "${YELLOW}{"
+echo -e "    \"name\": \"我的开发服务器\","
+echo -e "    \"host\": \"your-server-ip\","
+echo -e "    \"protocol\": \"ftp\","
+echo -e "    \"port\": 8021,"
+echo -e "    \"username\": \"$FTP_USER\","
+echo -e "    \"password\": \"$FTP_PASS\","
+echo -e "    \"remotePath\": \"$FTP_HOME\","
+echo -e "    \"uploadOnSave\": true,"
+echo -e "    \"passive\": true"
+echo -e "}${NC}"
+echo ""
+echo -e "${CYAN}3.${NC} 使用 VS Code 命令面板 ${YELLOW}Ctrl+Shift+P${NC} → ${YELLOW}SFTP: Upload${NC}"
+echo ""
+echo -e "${RED}⚠️  重要提示:${NC}"
+echo -e "${RED}   • 在配置中将 ${YELLOW}your-server-ip${RED} 替换为实际的服务器IP地址${NC}"
+echo -e "${RED}   • 如果启动失败，请检查 ${YELLOW}$CURPATH/var/proftpd.system.log${NC}"
+echo -e "${GREEN}   • 更多配置选项请参考 ${YELLOW}README.md${GREEN} 和 ${YELLOW}QUICKSTART.md${NC}"
+echo ""
